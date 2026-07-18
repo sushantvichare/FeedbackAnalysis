@@ -1,6 +1,6 @@
 # Customer Feedback Analysis and Automated Response
 
-This project analyzes Amazon product review data (`1429_1.csv`) to uncover customer satisfaction trends, identify the most critical negative reviews, and automatically draft personalized apology/resolution emails for the top complaints using a generative AI model (Google Gemini).
+This project analyzes Amazon product review data (`feedbackdata.csv`) to uncover customer satisfaction trends, identify the most critical negative reviews, and automatically draft personalized apology/resolution emails for the top complaints using a generative AI model (Google Gemini).
 
 The full workflow lives in **`reviewReport.ipynb`**.
 
@@ -12,6 +12,7 @@ The full workflow lives in **`reviewReport.ipynb`**.
 - **Visualization:** `matplotlib`, `seaborn`, `plotly.express`
 - **Text processing:** `re`, `collections.Counter`
 - **Automation / GenAI:** `google-genai` (Gemini API)
+- **Config / secrets:** `python-dotenv` (loads settings from a `.env` file)
 
 ---
 
@@ -19,11 +20,11 @@ The full workflow lives in **`reviewReport.ipynb`**.
 
 ### 1. Imports
 
-Loads all libraries needed for data wrangling, plotting, and NLP, and suppresses non-critical warnings for a cleaner notebook output.
+Loads all libraries needed for data wrangling, plotting, and NLP, and suppresses non-critical warnings for a cleaner notebook output. Also installs and imports `python-dotenv`, which is used to load configuration (file paths, API keys) from a local `.env` file instead of hardcoding them in the notebook.
 
 ### 2. Loading Data
 
-Reads the raw review dataset (`1429_1.csv`) into a pandas DataFrame.
+Calls `load_dotenv()` to read the `.env` file, then reads the raw review dataset into a pandas DataFrame from the path specified by the `FILE_PATH` environment variable (rather than a hardcoded path to `feedbackdata.csv`).
 
 ### 3. Data Cleaning & Preprocessing
 
@@ -106,6 +107,8 @@ For each of the 3 critical reviews, a structured prompt is sent to Google's `gem
 - Stay within 120–180 words
 - Avoid inventing details not present in the review
 
+The Gemini client is initialized using the `GEMINI_API_KEY` value loaded from the `.env` file via `os.getenv("GEMINI_API_KEY")`.
+
 The three generated emails are stored in the `emails` list and also included in the notebook as a pre-generated reference ("Pregenerated Emails" section) covering Fire TV hardware defects, connectivity/UX issues, and unresponsive-remote/performance complaints.
 
 ---
@@ -127,10 +130,18 @@ The three generated emails are stored in the `emails` list and also included in 
 
 1. Install dependencies:
    ```bash
-   pip install pandas numpy matplotlib seaborn plotly google-genai
+   pip install pandas numpy matplotlib seaborn plotly google-genai python-dotenv
    ```
-2. Update the data path in the **Loading Data** cell to point to your local copy of `1429_1.csv`.
-3. Run all cells top to bottom.
-4. For the Automation section, set your Gemini API key as an environment variable (see Security Note below) before running the email-generation cells.
+2. Create a `.env` file in the project root (see `.env.example` below, or create your own) with the following variables:
+   ```env
+   FILE_PATH=/path/to/your/feedbackdata.csv
+   GEMINI_API_KEY=your_gemini_api_key_here
+   ```
+
+   - `FILE_PATH` — path to your local copy of the review dataset (`feedbackdata.csv`). This is read in the **Loading Data** cell via `load_dotenv()` + `os.getenv("FILE_PATH")`, so no code changes are needed to point the notebook at your data.
+   - `GEMINI_API_KEY` — your Google Gemini API key, used to authenticate the `google-genai` client in the Automation section.
+3. Run all cells top to bottom. `load_dotenv()` is called early in the notebook, so both variables are available by the time they're needed — the Automation section will pick up `GEMINI_API_KEY` automatically without any further setup.
+
+> **Note:** Keep your `.env` file out of version control (add it to `.gitignore`) since it contains your API key.
 
 ---
